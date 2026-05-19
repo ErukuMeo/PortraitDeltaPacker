@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdpack"
+version = "0.1.0"
+description = "Portrait Delta Packer — offline packaging tool for character portrait variant images"
+authors = [{ name = "PDPack Team" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "opencv-python>=4.8",
+    "numpy>=1.24",
+    "Pillow>=10.0",
+    "scikit-image>=0.21",
+]
+
+[project.scripts]
+pdpack = "pdpack.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pdpack*"]
