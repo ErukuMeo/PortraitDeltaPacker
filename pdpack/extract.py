@@ -5,7 +5,7 @@ T1.3 — 差异区域提取与轴对齐矩形合并。
 再通过贪心合并减少碎片化。
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import cv2
 import numpy as np
@@ -18,6 +18,7 @@ def extract_diff_regions(
     diff_mask: np.ndarray,
     block_size: int,
     image: np.ndarray,
+    alpha_mask: Optional[np.ndarray] = None,
 ) -> List[dict]:
     """从单个变体的差异位图中提取差异区域。
 
@@ -71,6 +72,9 @@ def extract_diff_regions(
             continue
 
         pixels = image[py:py + ph, px:px + pw].copy()
+        if alpha_mask is not None:
+            alpha_region = alpha_mask[py:py + ph, px:px + pw].copy()
+            pixels = np.dstack([pixels, alpha_region])
 
         rects.append({
             "x": px,
@@ -88,6 +92,7 @@ def merge_rectangles(
     diff_mask: np.ndarray,
     block_size: int,
     image: np.ndarray = None,
+    alpha_mask: Optional[np.ndarray] = None,
     blank_tolerance: float = 0.25,
 ) -> List[dict]:
     """贪心合并轴对齐矩形，减少碎片化。
@@ -152,6 +157,9 @@ def merge_rectangles(
             h = max(1, min(h, img_h - y))
             r["x"], r["y"], r["w"], r["h"] = x, y, w, h
             r["pixels"] = image[y:y + h, x:x + w].copy()
+            if alpha_mask is not None:
+                alpha_region = alpha_mask[y:y + h, x:x + w].copy()
+                r["pixels"] = np.dstack([r["pixels"], alpha_region])
 
     return working
 

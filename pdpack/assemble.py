@@ -72,7 +72,7 @@ def assemble(
             if any(m["name"] == region_name for m in meta_list):
                 region_name = f"r{px}_{py}_{i}"
 
-            diff_png = _ndarray_to_png(pixels, has_alpha=False)
+            diff_png = _ndarray_to_png(pixels)
             diff_list.append(diff_png)
             meta_list.append({
                 "name": region_name,

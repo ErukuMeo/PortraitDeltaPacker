@@ -67,7 +67,7 @@ def reconstruct(
                 region_img = cv2.resize(region_img, (w, h))
 
             # 若基础图含 Alpha 而差异区域不含，仅覆写 RGB 通道
-            if canvas.ndim == 3 and canvas.shape[2] == 4 and region_img.ndim == 2 or (region_img.ndim == 3 and region_img.shape[2] == 3):
+            if canvas.ndim == 3 and canvas.shape[2] == 4 and (region_img.ndim == 2 or region_img.shape[2] == 3):
                 canvas[y:y + h, x:x + w, :3] = region_img[:, :, :3] if region_img.ndim == 3 else np.stack([region_img]*3, axis=-1)
             else:
                 canvas[y:y + h, x:x + w] = region_img

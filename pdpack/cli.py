@@ -136,6 +136,13 @@ def _cmd_pack(args: argparse.Namespace) -> None:
         mask is not None for mask in alpha_masks.values()
     )
 
+    # 归一化透明像素 RGB 值，避免透明区域因 RGB 垃圾值产生假 diff
+    if has_alpha:
+        for name, img in variants.items():
+            mask = alpha_masks.get(name)
+            if mask is not None:
+                img[mask == 0] = 0
+
     # 第 2 步 — 差异检测
     t0 = time.monotonic()
     base_img = variants[base_name]
@@ -156,8 +163,9 @@ def _cmd_pack(args: argparse.Namespace) -> None:
     variant_regions: Dict[str, List[dict]] = {}
     for vname, dmask in diff_masks.items():
         vimg = variants[vname]
-        raw_regions = extract_diff_regions(dmask, args.block_size, vimg)
-        merged_regions = merge_rectangles(raw_regions, dmask, args.block_size, vimg)
+        amask = alpha_masks.get(vname) if has_alpha else None
+        raw_regions = extract_diff_regions(dmask, args.block_size, vimg, amask)
+        merged_regions = merge_rectangles(raw_regions, dmask, args.block_size, vimg, amask)
         variant_regions[vname] = merged_regions
     if args.verbose:
         _log_timing("T1.3 区域提取与合并", t0)
