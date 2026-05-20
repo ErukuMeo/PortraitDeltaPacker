@@ -229,7 +229,7 @@ def _cmd_pack(args: argparse.Namespace) -> None:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
 
     if args.extract_diffs:
-        os.makedirs(args.extract_diffs, exist_ok=True)
+        _clear_dir(args.extract_diffs)
         for vname, pngs in variant_diff_pngs.items():
             for i, png_bytes in enumerate(pngs):
                 path = os.path.join(args.extract_diffs, f"{vname}_diff_{i}.png")
@@ -279,7 +279,7 @@ def _cmd_preview(args: argparse.Namespace) -> None:
                 f"可用变体: {variant_names}")
 
     # 保存基础图（基准变体）
-    os.makedirs(args.output, exist_ok=True)
+    _clear_dir(args.output)
     from PIL import Image
     base_name = ppf.metadata.get("base", {}).get("name", "base")
     base_path = os.path.join(args.output, f"{base_name}_reconstructed.png")
@@ -313,6 +313,14 @@ def _cmd_preview(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 # 辅助函数
 # ---------------------------------------------------------------------------
+
+def _clear_dir(dirpath: str) -> None:
+    """清空目标文件夹（若存在），用于 --extract-diffs / preview -o 等目录输出。"""
+    import shutil
+    if os.path.isdir(dirpath):
+        shutil.rmtree(dirpath)
+    os.makedirs(dirpath, exist_ok=True)
+
 
 def _filter_transparent_regions(regions: List[dict], min_visible_pct: float = 5.0) -> List[dict]:
     """过滤几乎全透明的 diff 区域（抗锯齿边缘假阳性）。
