@@ -46,9 +46,9 @@ def main(argv: Optional[List[str]] = None) -> None:
         help="输出 .pdpack 文件路径 (默认: ./output.pdpack)",
     )
     pack_parser.add_argument(
-        "--block-size", type=int, default=16,
-        choices=[8, 16, 32],
-        help="块大小: 8, 16 或 32 (默认: 16)",
+        "--block-size", type=int, default=32,
+        choices=[8, 16, 32, 64],
+        help="块大小: 8, 16, 32 或 64 (默认: 32)",
     )
     pack_parser.add_argument(
         "--threshold", type=float, default=0.98,

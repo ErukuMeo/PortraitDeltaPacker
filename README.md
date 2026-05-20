@@ -37,7 +37,7 @@ python -m pdpack pack <输入目录> [-o 输出文件] [选项]
 |------|--------|------|
 | `-o, --output` | `./output.pdpack` | 输出文件路径 |
 | `--base` | 字母序首张 | 指定基准变体名称 |
-| `--block-size` | `16` | 块大小：`8` `16` `32` |
+| `--block-size` | `32` | 块大小：`8` `16` `32` `64` |
 | `--threshold` | `0.98` | SSIM 相似度阈值 (0.0–1.0) |
 | `--json-metadata` | — | 同时导出独立 JSON 元数据 |
 | `--extract-diffs` | — | 导出差异区域 PNG 到指定目录 |

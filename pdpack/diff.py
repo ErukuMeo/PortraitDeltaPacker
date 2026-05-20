@@ -75,7 +75,7 @@ def _block_ssim(block_a: np.ndarray, block_b: np.ndarray) -> float:
 def detect_diffs(
     base_img: np.ndarray,
     variant_imgs: Dict[str, np.ndarray],
-    block_size: int = 16,
+    block_size: int = 32,
     threshold: float = 0.98,
 ) -> Dict[str, np.ndarray]:
     """检测基准图与各变体之间的差异块。
