@@ -136,20 +136,28 @@ def _cmd_pack(args: argparse.Namespace) -> None:
         mask is not None for mask in alpha_masks.values()
     )
 
-    # 归一化透明像素 RGB 值，避免透明区域因 RGB 垃圾值产生假 diff
+    # 制作 diff 检测用图像：将 RGBA 预乘合成到黑色背景上（模拟游戏引擎渲染）
+    # 透明像素 → 黑色，抗锯齿边缘的微弱差异自然被可见度加权抑制
+    variants_for_detection = {}
     if has_alpha:
         for name, img in variants.items():
             mask = alpha_masks.get(name)
             if mask is not None:
-                img[mask == 0] = 0
+                alpha_f = mask.astype(np.float32) / 255.0
+                composited = (img.astype(np.float32) * alpha_f[:, :, np.newaxis]).astype(np.uint8)
+                variants_for_detection[name] = composited
+            else:
+                variants_for_detection[name] = img
+    else:
+        variants_for_detection = variants
 
     # 第 2 步 — 差异检测
     t0 = time.monotonic()
-    base_img = variants[base_name]
-    other_imgs = {k: v for k, v in variants.items() if k != base_name}
+    base_for_detection = variants_for_detection[base_name]
+    other_for_detection = {k: v for k, v in variants_for_detection.items() if k != base_name}
     try:
         diff_masks = detect_diffs(
-            base_img, other_imgs,
+            base_for_detection, other_for_detection,
             block_size=args.block_size,
             threshold=args.threshold,
         )
@@ -158,7 +166,7 @@ def _cmd_pack(args: argparse.Namespace) -> None:
     if args.verbose:
         _log_timing("T1.2 差异检测", t0)
 
-    # 第 3 步 — 区域提取 + 合并
+    # 第 3 步 — 区域提取 + 合并（使用原始 variants，非预乘版本）
     t0 = time.monotonic()
     variant_regions: Dict[str, List[dict]] = {}
     for vname, dmask in diff_masks.items():
@@ -166,11 +174,15 @@ def _cmd_pack(args: argparse.Namespace) -> None:
         amask = alpha_masks.get(vname) if has_alpha else None
         raw_regions = extract_diff_regions(dmask, args.block_size, vimg, amask)
         merged_regions = merge_rectangles(raw_regions, dmask, args.block_size, vimg, amask)
+        # 过滤几乎全透明的 diff 区域（抗锯齿边缘假阳性）
+        if has_alpha and amask is not None:
+            merged_regions = _filter_transparent_regions(merged_regions, min_visible_pct=5.0)
         variant_regions[vname] = merged_regions
     if args.verbose:
         _log_timing("T1.3 区域提取与合并", t0)
 
     # 第 4 步 — 组装（若含 Alpha，先合入基础图）
+    base_img = variants[base_name]
     base_for_assembly = base_img
     if has_alpha and alpha_masks.get(base_name) is not None:
         alpha = alpha_masks[base_name]
@@ -301,6 +313,25 @@ def _cmd_preview(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 # 辅助函数
 # ---------------------------------------------------------------------------
+
+def _filter_transparent_regions(regions: List[dict], min_visible_pct: float = 5.0) -> List[dict]:
+    """过滤几乎全透明的 diff 区域（抗锯齿边缘假阳性）。
+
+    仅对 RGBA 区域生效；RGB 区域（无 Alpha）直接保留。
+    """
+    kept = []
+    for r in regions:
+        pixels = r.get("pixels")
+        if pixels is None or pixels.ndim != 3:
+            kept.append(r)
+        elif pixels.shape[2] == 3:
+            kept.append(r)  # 无 Alpha，所有像素视为可见
+        elif pixels.shape[2] == 4:
+            visible = 100 * (pixels[:, :, 3] > 10).sum() / pixels[:, :, 3].size
+            if visible >= min_visible_pct:
+                kept.append(r)
+    return kept
+
 
 def _configure_logging(args: argparse.Namespace) -> None:
     """确保 --verbose 与 --quiet 不同时设置。"""
