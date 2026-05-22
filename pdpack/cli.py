@@ -55,8 +55,8 @@ def main(argv: Optional[List[str]] = None) -> None:
         help="SSIM 相似度阈值 0.0–1.0 (默认: 0.98)",
     )
     pack_parser.add_argument(
-        "--base", dest="base_name", default=None,
-        help="指定基准变体名 (默认: 字母序第一)",
+        "--default-variant", "--base", dest="base_name", default=None,
+        help="指定默认变体名 (默认: 字母序第一)",
     )
     pack_parser.add_argument(
         "--json-metadata", dest="json_metadata", default=None,
@@ -126,7 +126,7 @@ def _cmd_pack(args: argparse.Namespace) -> None:
     except (FileNotFoundError, ValueError) as exc:
         _die(2, str(exc))
     if not args.quiet:
-        _log(f"已加载 {len(variants)} 个变体, 基准='{base_name}', "
+        _log(f"已加载 {len(variants)} 个变体, 默认变体='{base_name}', "
              f"尺寸={image_shape[1]}×{image_shape[0]}", args)
     if args.verbose:
         _log_timing("T1.1 加载", t0)
@@ -168,7 +168,7 @@ def _cmd_pack(args: argparse.Namespace) -> None:
 
     # 第 3 步 — 区域提取 + 合并（使用原始 variants，非预乘版本）
     t0 = time.monotonic()
-    variant_regions: Dict[str, List[dict]] = {}
+    variant_regions: Dict[str, List[dict]] = {base_name: []}
     for vname, dmask in diff_masks.items():
         vimg = variants[vname]
         amask = alpha_masks.get(vname) if has_alpha else None
@@ -181,7 +181,7 @@ def _cmd_pack(args: argparse.Namespace) -> None:
     if args.verbose:
         _log_timing("T1.3 区域提取与合并", t0)
 
-    # 第 4 步 — 组装（若含 Alpha，先合入基础图）
+    # 第 4 步 — 组装（若含 Alpha，先合入默认变体图）
     base_img = variants[base_name]
     base_for_assembly = base_img
     if has_alpha and alpha_masks.get(base_name) is not None:
@@ -278,16 +278,8 @@ def _cmd_preview(args: argparse.Namespace) -> None:
         _die(1, f"变体 '{target}' 未找到。"
                 f"可用变体: {variant_names}")
 
-    # 保存基础图（基准变体）
     _clear_dir(args.output)
-    from PIL import Image
-    base_name = ppf.metadata.get("base", {}).get("name", "base")
-    base_path = os.path.join(args.output, f"{base_name}_reconstructed.png")
-    Image.fromarray(ppf.base_image).save(base_path)
-    if not args.quiet:
-        _log(f"已保存基础图(基准变体) {base_path}", args)
 
-    # 重建各变体差异
     reconstructed = reconstruct(ppf, variant_name=target)
     saved = save_reconstructed(reconstructed, args.output)
 

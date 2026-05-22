@@ -23,7 +23,7 @@ python -m pdpack preview test.pdpack -o ./preview/
 python -m pdpack preview test.pdpack -o ./preview/ --verify ./tests/fixtures
 ```
 
-预览输出中包含基础图（基准变体）及各变体的重建图，命名格式 `{variant}_reconstructed.png`。PSNR ≥ 40 dB 为通过，实测通常 ≥ 60 dB（像素级近乎无损）。
+预览输出包含所有变体的重建图；默认变体也按普通变体输出，命名格式 `{variant}_reconstructed.png`。PSNR ≥ 40 dB 为通过，实测通常 ≥ 60 dB（像素级近乎无损）。
 
 ## 命令参考
 
@@ -36,7 +36,7 @@ python -m pdpack pack <输入目录> [-o 输出文件] [选项]
 | 选项 | 默认值 | 说明 |
 |------|--------|------|
 | `-o, --output` | `./output.pdpack` | 输出文件路径 |
-| `--base` | 字母序首张 | 指定基准变体名称 |
+| `--default-variant`, `--base` | 字母序首张 | 指定默认变体名称 |
 | `--block-size` | `32` | 块大小：`8` `16` `32` `64` |
 | `--threshold` | `0.98` | SSIM 相似度阈值 (0.0–1.0) |
 | `--json-metadata` | — | 同时导出独立 JSON 元数据 |
@@ -61,9 +61,9 @@ python -m pdpack preview <.pdpack 文件> [-o 输出目录] [选项]
 ## 工作原理
 
 1. **加载校验** — 扫描 PNG，校验尺寸一致且 ≤ 2048×2048，分离 Alpha 通道
-2. **差异检测** — 基准图与各变体逐块 SSIM 比对，低纹理区域回退 MSE
+2. **差异检测** — 默认变体作为内部差分锚点，与各变体逐块 SSIM 比对，低纹理区域回退 MSE
 3. **区域提取** — 连通域分析 → 包围盒合并（贪心，容忍 ≤ 25% 空白）
-4. **组装序列化** — 基础图 PNG + 差异 PNGs → 大端序 `.pdpack` 二进制
+4. **组装序列化** — 默认变体原图 PNG + 差异 PNGs → 大端序 `.pdpack` 二进制
 5. **预览验证** — 反序列化重建图像，可选 PSNR 比对原图
 
 ## 二进制格式 (.pdpack)
@@ -80,7 +80,7 @@ python -m pdpack preview <.pdpack 文件> [-o 输出目录] [选项]
 ├──────────────────────────────────────────────────────────────────┤
 │ 偏移 24: 偏移表 (变长)                                            │
 │ ┌──────────────────────────────────────────────────────────────┐ │
-│ │ base_offset(4) + base_size(4)    ← 基础图 PNG 位置/长度      │ │
+│ │ base_offset(4) + base_size(4)    ← 默认变体原图 PNG 位置/长度 │ │
 │ │ meta_offset(4) + meta_size(4)    ← 元数据 JSON 位置/长度     │ │
 │ │ ─── 以下针对每个变体 ───                                      │ │
 │ │ region_count(2)                   ← 该变体差异区域数量       │ │
@@ -110,7 +110,7 @@ python -m pdpack preview <.pdpack 文件> [-o 输出目录] [选项]
 ### 偏移表
 
 紧接文件头，按序排列：
-1. **基础图条目** (8B) — `offset(I)` + `size(I)`
+1. **默认变体原图条目** (8B) — `offset(I)` + `size(I)`
 2. **元数据条目** (8B) — `offset(I)` + `size(I)`
 3. **每个变体** — `region_count(H)` + 每个区域 `offset(I)` + `size(I)`
 
@@ -118,7 +118,7 @@ python -m pdpack preview <.pdpack 文件> [-o 输出目录] [选项]
 
 ### 数据段
 
-按偏移表指定的偏移量依次存放原始 PNG 字节流：基础图 PNG → 元数据 JSON → 各变体差异区域 PNG。
+按偏移表指定的偏移量依次存放原始 PNG 字节流：默认变体原图 PNG → 元数据 JSON → 各变体差异区域 PNG。默认变体也存在于 `metadata["variants"]`，差异区域列表为空。
 
 ## 项目结构
 
@@ -129,7 +129,7 @@ PortraitDeltaPacker/
 │   ├── loader.py            # 图像加载校验
 │   ├── diff.py              # 块匹配 SSIM 差异检测
 │   ├── extract.py           # 区域提取与矩形合并
-│   ├── assemble.py          # 基础图 + 差异图组装
+│   ├── assemble.py          # 默认变体原图 + 差异图组装
 │   ├── serializer.py        # .pdpack 序列化/反序列化
 │   ├── schema.py            # 元数据 JSON Schema 校验
 │   └── preview.py           # 重建与 PSNR 验证

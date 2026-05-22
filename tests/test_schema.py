@@ -37,8 +37,9 @@ class TestValidateMetadata:
     def test_valid_full(self):
         """完整合法元数据应通过校验。"""
         md = {
-            "base": {"width": 2048, "height": 1024, "has_alpha": True},
+            "base": {"width": 2048, "height": 1024, "has_alpha": True, "name": "neutral"},
             "variants": {
+                "neutral": [],
                 "happy": [
                     {"name": "r10_20", "x": 10, "y": 20, "w": 32, "h": 32},
                 ],
@@ -104,3 +105,15 @@ class TestValidateMetadata:
         """非字典输入应校验失败。"""
         valid, errors = validate_metadata("not a dict")
         assert not valid
+
+    def test_base_name_must_be_a_variant(self):
+        """base.name 指向的默认变体必须存在于 variants。"""
+        md = {
+            "base": {"width": 64, "height": 64, "name": "neutral"},
+            "variants": {
+                "happy": [],
+            },
+        }
+        valid, errors = validate_metadata(md)
+        assert not valid
+        assert any("neutral" in e for e in errors)

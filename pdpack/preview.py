@@ -21,7 +21,7 @@ def reconstruct(
 ) -> Dict[str, np.ndarray]:
     """从 .pdpack 文件重建变体图像。
 
-    将各变体的差异区域按其存储坐标覆盖到基础图上。
+    将各变体的差异区域按其存储坐标覆盖到默认变体原图上。
 
     参数
     ----------
@@ -43,7 +43,7 @@ def reconstruct(
     result: Dict[str, np.ndarray] = {}
 
     for vname in targets:
-        # 以基础图副本为画布
+        # 以默认变体原图副本为画布
         canvas = base.copy()
 
         regions = ppf.variant_regions.get(vname, [])
@@ -66,7 +66,7 @@ def reconstruct(
             if rw != w or rh != h:
                 region_img = cv2.resize(region_img, (w, h))
 
-            # 若基础图含 Alpha 而差异区域不含，仅覆写 RGB 通道
+            # 若默认变体原图含 Alpha 而差异区域不含，仅覆写 RGB 通道
             if canvas.ndim == 3 and canvas.shape[2] == 4 and (region_img.ndim == 2 or region_img.shape[2] == 3):
                 canvas[y:y + h, x:x + w, :3] = region_img[:, :, :3] if region_img.ndim == 3 else np.stack([region_img]*3, axis=-1)
             else:

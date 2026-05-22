@@ -57,7 +57,7 @@ class TestDetectDiffs:
 
         result = detect_diffs(base, {"diff": variant}, block_size=16)
         # 块 (0,0) 应被标记
-        assert result["diff"][0, 0] is True
+        assert bool(result["diff"][0, 0]) is True
 
     def test_block_size_32(self):
         """block_size=32 应正常工作。"""
@@ -66,7 +66,7 @@ class TestDetectDiffs:
         variant = base.copy()
         variant[0:32, 0:32] = [200, 200, 200]
         result = detect_diffs(base, {"d": variant}, block_size=32)
-        assert result["d"][0, 0] is True
+        assert bool(result["d"][0, 0]) is True
 
     def test_multiple_variants(self):
         """多个变体应同时被处理。"""

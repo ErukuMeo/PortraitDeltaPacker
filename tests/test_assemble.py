@@ -28,7 +28,9 @@ class TestAssemble:
             ],
         }
 
-        base_png, diff_pngs, metadata = assemble(base_img, variant_regions)
+        base_png, diff_pngs, metadata = assemble(
+            base_img, variant_regions, base_name="neutral",
+        )
 
         assert isinstance(base_png, bytes)
         assert len(base_png) > 0
@@ -38,6 +40,10 @@ class TestAssemble:
 
         assert metadata["base"]["width"] == 64
         assert metadata["base"]["height"] == 64
+        assert metadata["base"]["name"] == "neutral"
+        assert "neutral" in metadata["variants"]
+        assert metadata["variants"]["neutral"] == []
+        assert diff_pngs["neutral"] == []
         assert "happy" in metadata["variants"]
         assert len(metadata["variants"]["happy"]) == 1
         region = metadata["variants"]["happy"][0]
@@ -56,14 +62,19 @@ class TestAssemble:
             ],
         }
 
-        _base_png, diff_pngs, metadata = assemble(base_img, regions)
+        _base_png, diff_pngs, metadata = assemble(
+            base_img, regions, base_name="neutral",
+        )
+        assert diff_pngs["neutral"] == []
         assert len(diff_pngs["a"]) == 2
+        assert metadata["variants"]["neutral"] == []
         assert len(metadata["variants"]["a"]) == 2
 
     def test_has_alpha_flag(self):
         """设置 has_alpha=True 时元数据应反映此标志。"""
         base_img = np.zeros((32, 32, 3), dtype=np.uint8)
         _base_png, _diff_pngs, metadata = assemble(
-            base_img, {}, has_alpha=True,
+            base_img, {}, has_alpha=True, base_name="default",
         )
         assert metadata["base"]["has_alpha"] is True
+        assert metadata["variants"]["default"] == []

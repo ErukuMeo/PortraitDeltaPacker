@@ -1,7 +1,7 @@
 """
 T1.2 — 块匹配差异检测算法。
 
-将基准图与每个变体图按块逐一比较，使用 SSIM（结构相似性）指标
+将内部锚图与每个变体图按块逐一比较，使用 SSIM（结构相似性）指标
 判断是否相同，为每个变体生成差异布尔位图。
 """
 
@@ -78,12 +78,12 @@ def detect_diffs(
     block_size: int = 32,
     threshold: float = 0.98,
 ) -> Dict[str, np.ndarray]:
-    """检测基准图与各变体之间的差异块。
+    """检测内部锚图与各变体之间的差异块。
 
     参数
     ----------
     base_img : np.ndarray
-        基准图像，(H, W, 3) uint8 RGB 数组。
+        内部锚图，(H, W, 3) uint8 RGB 数组。
     variant_imgs : dict[str, np.ndarray]
         变体名 → (H, W, 3) uint8 RGB 数组。
     block_size : int

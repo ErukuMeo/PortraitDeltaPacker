@@ -84,8 +84,16 @@ def serialize(
     bytes
         完整的 .pdpack 文件内容。
     """
-    metadata_json = json.dumps(metadata, ensure_ascii=False).encode("utf-8")
     variant_names = sorted(variant_diff_pngs.keys())
+    metadata_variants = metadata.get("variants", {})
+    if set(metadata_variants.keys()) != set(variant_names):
+        raise ValueError("metadata.variants 与 variant_diff_pngs 的变体集合不一致")
+
+    ordered_metadata = dict(metadata)
+    ordered_metadata["variants"] = {
+        vname: metadata_variants[vname] for vname in variant_names
+    }
+    metadata_json = json.dumps(ordered_metadata, ensure_ascii=False).encode("utf-8")
     variant_count = len(variant_names)
 
     # --- 计算偏移表大小 ---
@@ -209,7 +217,7 @@ def deserialize(data: bytes) -> PDPackFile:
     metadata = json.loads(meta_bytes.decode("utf-8"))
 
     # --- 将数字键映射为实际变体名称 ---
-    variant_names = list(metadata.get("variants", {}).keys())
+    variant_names = sorted(metadata.get("variants", {}).keys())
     named_region_offsets: Dict[str, List[tuple]] = {}
     for vi, vname in enumerate(variant_names):
         named_region_offsets[vname] = variant_region_offsets.get(str(vi), [])

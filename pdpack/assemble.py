@@ -1,8 +1,8 @@
 """
 T1.4 — 差异块图集打包。
 
-将基础图和各变体的差异区域组装为最终输出结构：
-基础图 PNG + 各变体差异图 PNG + 元数据字典。
+将默认变体原图和各变体的差异区域组装为最终输出结构：
+默认变体原图 PNG + 各变体差异图 PNG + 元数据字典。
 """
 
 import io
@@ -19,24 +19,24 @@ def assemble(
     has_alpha: bool = False,
     base_name: str = "",
 ) -> tuple:
-    """将基础图与各变体差异区域组装为输出数据。
+    """将默认变体原图与各变体差异区域组装为输出数据。
 
     参数
     ----------
     base_img : np.ndarray
-        基础图 (H, W, 3) uint8 RGB。
+        默认变体原图 (H, W, 3) uint8 RGB。
     variant_regions : dict[str, list[dict]]
         变体名 → 差异区域字典列表。每个区域字典须含
         ``x, y, w, h, pixels`` 键。
     alpha_masks : dict[str, np.ndarray | None], 可选
         各变体的 Alpha 通道 (H, W) uint8，或 ``None``。
     has_alpha : bool
-        基础图是否含 Alpha 通道。
+        默认变体原图是否含 Alpha 通道。
 
     返回
     -------
     base_png : bytes
-        基础图 PNG 字节流。
+        默认变体原图 PNG 字节流。
     variant_diff_pngs : dict[str, list[bytes]]
         变体名 → 差异区域 PNG 字节流列表，每项为一个差异区域。
     metadata : dict
@@ -44,14 +44,19 @@ def assemble(
     """
     h, w = base_img.shape[:2]
 
-    # --- 基础图 PNG ---
+    # --- 默认变体原图 PNG ---
     base_png = _ndarray_to_png(base_img, has_alpha)
 
     # --- 各变体差异图 PNG ---
     variant_diff_pngs: Dict[str, List[bytes]] = {}
     metadata_variants: Dict[str, list] = {}
 
-    for vname, regions in variant_regions.items():
+    variant_names = set(variant_regions.keys())
+    if base_name:
+        variant_names.add(base_name)
+
+    for vname in sorted(variant_names):
+        regions = variant_regions.get(vname, [])
         diff_list: List[bytes] = []
         meta_list: list = []
 

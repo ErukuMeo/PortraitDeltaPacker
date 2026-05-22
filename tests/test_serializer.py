@@ -38,7 +38,9 @@ class TestSerializeDeserialize:
             ],
         }
 
-        base_png, diff_pngs, metadata = assemble(base_img, variant_regions)
+        base_png, diff_pngs, metadata = assemble(
+            base_img, variant_regions, base_name="neutral",
+        )
 
         data = serialize(base_png, metadata, diff_pngs)
         assert isinstance(data, bytes)
@@ -48,6 +50,7 @@ class TestSerializeDeserialize:
         assert isinstance(ppf, PDPackFile)
         assert ppf.header.magic == MAGIC
         assert ppf.header.version == 1
+        assert ppf.header.variant_count == 3
 
         # 验证基础图
         np.testing.assert_array_equal(ppf.base_image, base_img)
@@ -56,6 +59,8 @@ class TestSerializeDeserialize:
         assert ppf.metadata == metadata
 
         # 验证变体差异区域
+        assert "neutral" in ppf.variant_regions
+        assert ppf.variant_regions["neutral"] == []
         assert "happy" in ppf.variant_regions
         assert len(ppf.variant_regions["happy"]) == 1
         np.testing.assert_array_equal(
@@ -66,6 +71,25 @@ class TestSerializeDeserialize:
         np.testing.assert_array_equal(
             ppf.variant_regions["sad"][0], diff2,
         )
+
+    def test_variant_mapping_uses_sorted_names(self):
+        """序列化和反序列化应使用同一变体顺序映射差异区域。"""
+        base_img = np.zeros((32, 32, 3), dtype=np.uint8)
+        diff_a = np.ones((8, 8, 3), dtype=np.uint8) * 10
+        diff_z = np.ones((8, 8, 3), dtype=np.uint8) * 200
+        variant_regions = {
+            "z": [{"x": 0, "y": 0, "w": 8, "h": 8, "pixels": diff_z}],
+            "a": [{"x": 8, "y": 8, "w": 8, "h": 8, "pixels": diff_a}],
+        }
+
+        base_png, diff_pngs, metadata = assemble(
+            base_img, variant_regions, base_name="m",
+        )
+        ppf = deserialize(serialize(base_png, metadata, diff_pngs))
+
+        np.testing.assert_array_equal(ppf.variant_regions["a"][0], diff_a)
+        np.testing.assert_array_equal(ppf.variant_regions["z"][0], diff_z)
+        assert ppf.variant_regions["m"] == []
 
     def test_bad_magic(self):
         """魔数错误的数据应触发 ValueError。"""

@@ -2,7 +2,7 @@
 T1.1 — 图像预处理与配准模块。
 
 扫描目录中的 PNG 文件，校验尺寸合法性，将图像加载为 NumPy 数组，
-并选定基准变体。
+并选定默认变体。
 """
 
 import os
@@ -24,7 +24,7 @@ def load_variants(
     input_dir : str
         包含变体 PNG 文件的目录路径。
     base_name : str, 可选
-        指定基准变体名称。若为 ``None``，则取字母序最小的变体。
+        指定默认变体名称。若为 ``None``，则取字母序最小的变体。
 
     返回
     -------
@@ -33,7 +33,7 @@ def load_variants(
     alpha_masks : dict[str, np.ndarray | None]
         变体名 → Alpha 通道 (H×W, uint8)，若无则为 ``None``。
     base_name : str
-        选定的基准变体名称。
+        选定的默认变体名称。
     image_shape : tuple[int, int, int]
         (高度, 宽度, 通道数) — 始终为 3 (RGB)。
 
@@ -62,12 +62,12 @@ def load_variants(
     if not png_files:
         raise ValueError(f"目录 {input_dir} 中未找到 PNG 文件")
 
-    # --- 确定基准变体 ---
+    # --- 确定默认变体 ---
     variant_names = [os.path.splitext(f)[0] for f in png_files]
     if base_name is not None:
         if base_name not in variant_names:
             raise ValueError(
-                f"指定的基准变体 '{base_name}' 未找到。"
+                f"指定的默认变体 '{base_name}' 未找到。"
                 f"可用变体: {variant_names}"
             )
     else:

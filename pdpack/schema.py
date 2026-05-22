@@ -23,6 +23,7 @@ METADATA_SCHEMA = {
                 "width": {"type": "integer", "minimum": 1},
                 "height": {"type": "integer", "minimum": 1},
                 "has_alpha": {"type": "boolean"},
+                "name": {"type": "string"},
             },
         },
         "variants": {
@@ -87,6 +88,10 @@ def validate_metadata(metadata: dict) -> Tuple[bool, List[str]]:
         if has_alpha is not None and not isinstance(has_alpha, bool):
             errors.append("'base.has_alpha' 必须为布尔值")
 
+        name = base.get("name")
+        if name is not None and not isinstance(name, str):
+            errors.append("'base.name' 必须为字符串")
+
     # --- variants 字段 ---
     variants = metadata.get("variants")
     if variants is None:
@@ -130,5 +135,9 @@ def validate_metadata(metadata: dict) -> Tuple[bool, List[str]]:
                             f"'variants.{vname}[{i}].{dim}' 必须为"
                             f"正整数"
                         )
+
+        base_name = base.get("name") if isinstance(base, dict) else None
+        if isinstance(base_name, str) and base_name and base_name not in variants:
+            errors.append(f"'variants' 必须包含默认变体 '{base_name}'")
 
     return len(errors) == 0, errors

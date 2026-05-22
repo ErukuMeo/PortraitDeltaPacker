@@ -46,7 +46,7 @@ class TestLoadVariants:
             assert alphas["b"] is None
 
     def test_specify_base(self):
-        """按名称指定基准变体。"""
+        """按名称指定默认变体。"""
         with tempfile.TemporaryDirectory() as tmp:
             _write_png(os.path.join(tmp, "z.png"), np.zeros((32, 32, 3), dtype=np.uint8))
             _write_png(os.path.join(tmp, "a.png"), np.zeros((32, 32, 3), dtype=np.uint8))
@@ -55,7 +55,7 @@ class TestLoadVariants:
             assert base == "z"
 
     def test_specify_base_not_found(self):
-        """指定不存在的基准变体应触发异常。"""
+        """指定不存在的默认变体应触发异常。"""
         with tempfile.TemporaryDirectory() as tmp:
             _write_png(os.path.join(tmp, "a.png"), np.zeros((32, 32, 3), dtype=np.uint8))
             with pytest.raises(ValueError, match="未找到"):
